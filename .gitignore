@@ -1,0 +1,7 @@
+.idea/
+/bin
+tls.crt
+tls.key
+validating-application-standards-cert.csr
+validating-application-standards-cert.pem
+/vendor

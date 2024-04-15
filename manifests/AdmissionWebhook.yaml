@@ -1,0 +1,172 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ops-admission-webhook
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: validating-application-standards
+  name: validating-application-standards
+  namespace: ops-admission-webhook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: validating-application-standards
+  template:
+    metadata:
+      labels:
+        app: validating-application-standards
+    spec:
+      imagePullSecrets:
+        - name: harbor-sh
+      containers:
+        - image: harbor-sh.XXXXX.com/ops/resource-validating:master-5d448c9a
+          env:
+            - name: CERT_DIR
+              value: "/etc/validating-application-standards-webhook/certs"
+            - name: TZ
+              value: Asia/Shanghai
+          name: validating-application-standards
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /etc/validating-application-standards-webhook/certs/
+              name: tls-cert
+      volumes:
+        - name: tls-cert
+          secret:
+            secretName: validating-application-standards-tls-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: validating-application-standards
+  name: validating-application-standards
+  namespace: ops-admission-webhook
+spec:
+  ports:
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: 8000
+  selector:
+    app: validating-application-standards
+  type: ClusterIP
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: validating-application-standards
+  annotations:
+    cert-manager.io/inject-ca-from: ops-admission-webhook/validating-application-standards-tls-secret
+webhooks:
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      caBundle: ""
+      service:
+        name: validating-application-standards
+        namespace: ops-admission-webhook
+        port: 443
+        path: /validate
+    failurePolicy: Fail
+    matchPolicy: Exact
+    name: validating-application-standards.XXXXX.com
+    rules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+        resources:
+          - pods
+        scope: '*'
+      - operations: ["CREATE","UPDATE"]
+        apiGroups: ["*"]
+        apiVersions: ["*"]
+        resources: ["deployments"]
+        scope: '*'
+    objectSelector:
+      matchExpressions:
+        - key: app
+          operator: NotIn
+          values:
+            - validating-application-standards
+        - key: component
+          operator: In
+          values:
+            - server-acl-init
+        - key: component
+          operator: In
+          values:
+            - server-acl-init-cleanup
+    namespaceSelector:
+      matchExpressions:
+      - key: kubernetes.io/metadata.name
+        operator: NotIn
+        values:
+          - kube-system
+          - kube-public
+          - kube-node-lease
+          - cattle-system
+          - cattle-monitoring-system
+          - cattle-impersonation
+          - cattle-fleet-system
+          # - default
+          - fleet-system
+          - local
+    sideEffects: None
+    timeoutSeconds: 3
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: security-mutating-webhook-cfg
+  labels:
+    app: security-mutating-webhook
+  annotations:
+    cert-manager.io/inject-ca-from: ops-admission-webhook/validating-application-standards-tls-secret
+webhooks:
+  - name: security-mutating-webhook.XXXXX.com
+    admissionReviewVersions:
+      - v1
+    clientConfig:
+      caBundle: ""
+      service:
+        name: validating-application-standards
+        namespace: ops-admission-webhook
+        port: 443
+        path: /mutate
+    rules:
+      - operations: ["CREATE","UPDATE"]
+        apiGroups: ["*"]
+        apiVersions: ["*"]
+        resources: ["deployments"]
+        scope: '*'
+    namespaceSelector:
+      matchExpressions:
+      - key: kubernetes.io/metadata.name
+        operator: NotIn
+        values:
+          - kube-system
+          - kube-public
+          - kube-node-lease
+          - cattle-system
+          - cattle-monitoring-system
+          - cattle-impersonation
+          - cattle-fleet-system
+          - fleet-system
+          - local
+          - ops-admission-webhook
+    sideEffects: None
+    timeoutSeconds: 3
+    failurePolicy: Fail
+    matchPolicy: Equivalent
+

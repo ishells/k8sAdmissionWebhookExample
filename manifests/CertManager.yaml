@@ -1,0 +1,39 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: validating-application-standards-selfsigned-issuer
+  namespace: ops-admission-webhook
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: validating-application-standards-tls-secret
+  namespace: ops-admission-webhook
+spec:
+  duration: 8760h
+  renewBefore: 8000h
+  subject:
+    organizations:
+      - XXXXX.com
+  commonName: validating-application-standards.ops-admission-webhook
+  isCA: false
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+  dnsNames:
+    - validating-application-standards
+    - validating-application-standards.ops-admission-webhook
+    - validating-application-standards.ops-admission-webhook.svc
+  #ipAddresses:
+  #  - 10.43.125.113 # change it to your IP addresses
+  issuerRef:
+    kind: Issuer
+    name: validating-application-standards-selfsigned-issuer
+  secretName: validating-application-standards-tls-secret

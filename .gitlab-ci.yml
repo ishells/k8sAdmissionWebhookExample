@@ -1,0 +1,46 @@
+variables:
+  PROJECT_NAME: resource-validating
+
+stages:
+  - build
+  # - deploy
+
+编译beta镜像:
+  stage: build
+  image:
+    name: harbor-sh.XXXXX.com/poker-public/golang:1.20.1-centos7.9-graphviz
+  script:
+    - docker login --username=$HARBOR_PUSH_USER $HARBOR_SH_ADDR -p $HARBOR_SH_USER_PASSWD
+    - docker build -t harbor-sh.pocketcity.com/ops/${PROJECT_NAME}:merge-security-0.0.1 .
+    - docker push harbor-sh.pocketcity.com/ops/${PROJECT_NAME}:merge-security-0.0.1
+    - docker rmi harbor-sh.pocketcity.com/ops/${PROJECT_NAME}:merge-security-0.0.1
+    # - docker login --username=$HARBOR_PUSH_USER $HARBOR_SH_ADDR -p $HARBOR_SH_USER_PASSWD
+    # - docker build -t harbor-sh.XXXXX.com/ops/${PROJECT_NAME}:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA .
+    # - docker push harbor-sh.XXXXX.com/ops/${PROJECT_NAME}:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA
+    # - docker rmi harbor-sh.XXXXX.com/ops/${PROJECT_NAME}:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA
+    # - docker login --username=$HARBOR_PUSH_USER $HARBOR_HK_ADDR -p $HARBOR_HK_USER_PASSWD
+    # - docker build -t harbor-hk.XXXXX.com/ops/${PROJECT_NAME}:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA .
+    # - docker push harbor-hk.XXXXX.com/ops/${PROJECT_NAME}:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA
+    # - docker rmi harbor-hk.XXXXX.com/ops/${PROJECT_NAME}:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA
+    # - docker login --username=dockermanage@XXXXX-aliyun XXXXX-hub-registry-vpc.cn-shanghai.cr.aliyuncs.com -p XXXXX
+    # - docker build -t XXXXX-hub-registry-vpc.cn-shanghai.cr.aliyuncs.com/ops/${PROJECT_NAME}:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA .
+    # - docker push XXXXX-hub-registry-vpc.cn-shanghai.cr.aliyuncs.com/ops/${PROJECT_NAME}:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA
+    # - docker rmi XXXXX-hub-registry-vpc.cn-shanghai.cr.aliyuncs.com/ops/${PROJECT_NAME}:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA
+  only:
+    - master
+  tags:
+    - k3s-runner
+
+编译prod镜像:
+  stage: build
+  image:
+    name: harbor-sh.XXXXX.com/XXXXX-public/golang:1.20.1-centos7.9-graphviz
+  script:
+    - docker login --username=$HARBOR_PUSH_USER $HARBOR_SH_ADDR -p $HARBOR_SH_USER_PASSWD
+    - docker build -t harbor-sh.XXXXX.com/ops/${PROJECT_NAME}:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA .
+    - docker push harbor-sh.XXXXX.com/ops/${PROJECT_NAME}:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA
+    - docker rmi harbor-sh.XXXXX.com/ops/${PROJECT_NAME}:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA
+  only:
+    - /^stable-.*$/
+  tags:
+    - k3s-runner
