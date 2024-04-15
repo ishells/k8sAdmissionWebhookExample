@@ -1,8 +1,10 @@
-# 用于验证pod是否符合标准
+# validating 用于验证pod是否符合标准
 ## 1.resource资源（保证资源合理利用）
 ## 2.探针设置（保证发布可用）
 ## 3.调度策略（禁止白嫖）
 ## 4.名称规范（必须以项目标识开头）
+## 5.Pod SecurityContext 部分字段检测
+# mutating webhook 用于patch SecurityContext 部分字段并添加annotation标明已被webhook修改过
 
 # 流程
 
